@@ -26,14 +26,14 @@ object Huffman {
   // Part 1: Basics
     def weight(tree: CodeTree): Int = tree match
     {
-      case Fork(Leaf(_,_),Leaf(_,_),_,w) => w
-      case Fork(left,right,_,_) => weight(left) + weight(right)
+      case Leaf(_,w) => w
+      case Fork(_,_,_,w) => w
     }
   
     def chars(tree: CodeTree): List[Char] = tree match
     {
-      case Fork(Leaf(left,_),Leaf(right,_),_,_) => left :: right :: Nil
-      case Fork(left,right,_,_) => chars(left) ::: chars(right)
+      case Leaf(char,_) => List(char)
+      case Fork(_,_,chars,_) => chars
     }
   
   def makeCodeTree(left: CodeTree, right: CodeTree) =
@@ -135,10 +135,13 @@ object Huffman {
     {
       def insert (list: List[CodeTree], elem: CodeTree) : List[CodeTree] = list match {
         case Nil => List(elem)
-        case Leaf(_,weight) :: tail => if(weight < elem.weight) list.head :: insert(tail,elem) else elem :: list
-        case Fork(_,_,_,weight) :: tail => if(weight < elem.weight) list.head :: insert(tail,elem) else elem :: list
+        case Leaf(_,w) :: tail => if(w < weight(elem) ) list.head :: insert(tail,elem) else elem :: list
+        case Fork(_,_,_,w) :: tail => if(w < weight(elem) ) list.head :: insert(tail,elem) else elem :: list
       }
-      insert(trees.tail.tail, makeCodeTree(trees.head,trees.tail.head) )
+      trees match {
+        case _ :: _ :: _ => insert(trees.tail.tail, makeCodeTree(trees.head,trees.tail.head) )
+        case _ => trees
+      }
     }
   
   /**
@@ -182,14 +185,15 @@ object Huffman {
     {
       def iterate (currenttree: CodeTree, bits: List[Bit], acc: List[Char]): List[Char] = bits match {
         case 1 :: tail => currenttree match {
+          case Fork(_,Leaf(right,_),_,_) => iterate(tree,tail,acc ::: right :: Nil)
           case Fork(_,right,_,_) => iterate(right,tail,acc)
-          case Leaf(char,_) => iterate(tree,tail,acc ::: char :: Nil)
         }
         case 0 :: tail => currenttree match {
+          case Fork(Leaf(left,_),_,_,_) => iterate(tree,tail,acc ::: left :: Nil)
           case Fork(left,_,_,_) => iterate(left,tail,acc)
-          case Leaf(char,_) => iterate(tree,tail,acc ::: char :: Nil)
         }
         case Nil => acc
+        case _ => throw new Error("Decode.Bit must have a velue of 1 or 0")
       }
       iterate(tree,bits,Nil)
     }
@@ -221,7 +225,9 @@ object Huffman {
    */
     def encode(tree: CodeTree)(text: List[Char]): List[Bit] = {
       def makecode(currenttree: CodeTree,elem: Char, acc: List[Bit]): List[Bit] = currenttree match {
-        case Fork(Leaf(left,_),Leaf(right,_),_,_) => if(left==elem) acc ::: 0 :: Nil else acc ::: 1 :: Nil
+        case Fork(Leaf(left,_),Leaf(right,_),_,_) =>
+          if(left == elem) acc ::: 0 :: Nil
+          else acc ::: 1 :: Nil
         case Fork(left,right,_,_) => left match {
           case Fork(_,_,chars,_) =>
             if(chars.contains(elem))  makecode(left,elem,acc ::: 0 :: Nil)
