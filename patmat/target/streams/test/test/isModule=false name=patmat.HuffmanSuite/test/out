@@ -6,3 +6,6 @@
 [0m[[0minfo[0m] [0m[32m- combine of some leaf list[0m[0m
 [0m[[0minfo[0m] [0m[32m- decode and encode a very short text should be identity[0m[0m
 [0m[[0minfo[0m] [0m[32m- decode and quick encode a very short text should be identity[0m[0m
+[0m[[0minfo[0m] [0m[32m- decode test[0m[0m
+[0m[[0minfo[0m] [0m[32m- qucik encode test[0m[0m
+[0m[[0minfo[0m] [0m[32m- decode and quick encode a text should be identity[0m[0m

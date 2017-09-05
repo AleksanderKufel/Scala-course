@@ -228,6 +228,12 @@ object Huffman {
         case Fork(Leaf(left,_),Leaf(right,_),_,_) =>
           if(left == elem) acc ::: 0 :: Nil
           else acc ::: 1 :: Nil
+        case Fork(Leaf(left,_),right,_,_) =>
+          if(left == elem) acc ::: 0 :: Nil
+          else makecode(right,elem,acc ::: 1 :: Nil)
+        case Fork(left,Leaf(right,_),_,_) =>
+          if (right == elem) acc ::: 1 :: Nil
+          else makecode(left,elem,acc ::: 0 :: Nil)
         case Fork(left,right,_,_) => left match {
           case Fork(_,_,chars,_) =>
             if(chars.contains(elem))  makecode(left,elem,acc ::: 0 :: Nil)
@@ -262,8 +268,19 @@ object Huffman {
    * a valid code tree that can be represented as a code table. Using the code tables of the
    * sub-trees, think of how to build the code table for the entire tree.
    */
+
+  //helper function change:
+  def change (bit: Bit)(a:CodeTable): CodeTable = {
+    def iterate(bit: Bit)(a: CodeTable, acc: CodeTable): CodeTable = a match {
+      case (char, list) :: tail => iterate(bit)(tail, (char, bit :: list) :: acc)
+      case Nil => acc
+    }
+    iterate(bit)(a,Nil)
+  }
     def convert(tree: CodeTree): CodeTable = tree match {
       case Fork(Leaf(left,_),Leaf(right,_),_,_) => (left,0 :: Nil) :: (right,1 :: Nil) :: Nil
+      case Fork(Leaf(left,_),right,_,_) => (left,0 :: Nil) :: change(1)(convert(right))
+      case Fork(left,Leaf(right,_),_,_) => change(0)(convert(left)) ::: (right, 1 :: Nil) :: Nil
       case Fork(left,right,_,_) => mergeCodeTables(convert(left),convert(right))
     }
   
@@ -272,13 +289,7 @@ object Huffman {
    * use it in the `convert` method above, this merge method might also do some transformations
    * on the two parameter code tables.
    */
-    def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = {
-      def change (bit: Bit)(a:CodeTable, acc:CodeTable): CodeTable = a match {
-        case (char,list) :: tail => change(bit)(tail, (char, bit :: list) :: acc)
-        case Nil => acc
-      }
-      change(1)(b,change(0)(a,Nil))
-    }
+    def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = change(0)(a) ::: change(1)(b)
   
   /**
    * This function encodes `text` according to the code tree `tree`.
