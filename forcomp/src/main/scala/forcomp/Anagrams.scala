@@ -69,7 +69,7 @@ object Anagrams {
     val code = dictionary map wordOccurrences
     val pairs = dictionary zip code
     val grouped = pairs groupBy(_._2)
-    grouped map { case (chars,list) => (chars, list.unzip._1) }
+    grouped map { case (chars,list) => (chars, list.unzip._1) } withDefaultValue List()
   }
 
   /** Returns all the anagrams of a given word. */
@@ -97,13 +97,14 @@ object Anagrams {
    *  Note that the order of the occurrence list subsets does not matter -- the subsets
    *  in the example above could have been displayed in some other order.
    */
-  def combinations(occurrences: Occurrences): List[Occurrences] = {
-    if (occurrences.isEmpty) List( List() )
-    else for {
-      (a, b) <- occurrences
-      i <- (1 to b)
-      sth <- combinations(occurrences.tail)
-    } yield (a,i) :: sth
+  def combinations(occurrences: Occurrences): List[Occurrences] = occurrences match {
+    case Nil => List(List()) // aaa ok
+    case (a,b) :: tail => {
+      for {
+        i <- (0 to b).toList
+        rest <- combinations(tail)
+      } yield if (i > 0) (a, i) :: rest else rest
+    }
   }
   /** Subtracts occurrence list `y` from occurrence list `x`.
    *
@@ -115,7 +116,13 @@ object Anagrams {
    *  Note: the resulting value is an occurrence - meaning it is sorted
    *  and has no zero-entries.
    */
-  def subtract(x: Occurrences, y: Occurrences): Occurrences = ???
+  def subtract(x: Occurrences, y: Occurrences): Occurrences = {
+    val map = y.toMap withDefaultValue 0
+    for {
+      (a,b) <- x
+      if b > map(a)
+    } yield (a,b - map(a))
+  }
 
   /** Returns a list of all anagram sentences of the given sentence.
    *
@@ -157,5 +164,16 @@ object Anagrams {
    *
    *  Note: There is only one anagram of an empty sentence.
    */
-  def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
+  def sentenceAnagrams(sentence: Sentence): List[Sentence] = {
+    val occ = sentenceOccurrences(sentence)
+    def find (occ: Occurrences): List[Sentence] = {
+      for {
+        wordocc <- combinations(occ)
+        word <- dictionaryByOccurrences(wordocc)
+        rest <- find( subtract(occ,wordocc))
+        //if dictionaryByOccurrences(wordocc).nonEmpty
+      } yield word :: rest
+    }
+    find(occ)
+  }
 }
